@@ -1,0 +1,10 @@
+---
+- name: Install the full Kali default toolset
+  ansible.builtin.apt:
+    name: kali-linux-default
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  # This is large; give it room.
+  async: 3600
+  poll: 30
