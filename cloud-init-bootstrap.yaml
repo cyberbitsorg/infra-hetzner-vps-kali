@@ -1,0 +1,39 @@
+#cloud-config
+hostname: ${server_name}
+timezone: ${timezone}
+locale: en_US.UTF-8
+
+users:
+  - name: deployacc
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+  - name: ${lab_username}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) ALL
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+disable_root: true
+ssh_pwauth: false
+
+packages:
+  - python3
+  - python3-venv
+  - git
+
+runcmd:
+  - echo "PermitRootLogin no" > /etc/ssh/sshd_config.d/01-ansible.conf
+  - echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/01-ansible.conf
+  - echo "AllowUsers deployacc ${lab_username}" >> /etc/ssh/sshd_config.d/01-ansible.conf
+  - systemctl restart ssh || systemctl restart sshd
+  - echo "${lab_username}:${admin_password}" | chpasswd
+  - echo "deployacc:${deployacc_sudo_password}" | chpasswd
+  - touch /var/log/ansible-bootstrap-complete
+
+final_message: "Bootstrap complete. Run the Ansible playbook."
