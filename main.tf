@@ -56,3 +56,23 @@ resource "hcloud_rdns" "ipv4" {
   ip_address = hcloud_server.kali[each.key].ipv4_address
   dns_ptr    = local.fqdn[each.key]
 }
+
+resource "hcloud_volume" "home" {
+  for_each = var.servers
+  name     = "${each.key}-home"
+  size     = each.value.data_volume_gb
+  location = each.value.server_location
+  format   = "ext4"
+  labels   = local.labels
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "hcloud_volume_attachment" "home" {
+  for_each  = var.servers
+  volume_id = hcloud_volume.home[each.key].id
+  server_id = hcloud_server.kali[each.key].id
+  automount = false # Ansible does the seed-then-mount; never blind-mount over /home
+}
