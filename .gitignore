@@ -1,0 +1,6 @@
+terraform.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+.vault_pass
+ansible/inventory/*.generated.*
