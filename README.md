@@ -23,12 +23,14 @@ Provisioning is two phases:
   create it: add the `kali` entry from
   `infra-hetzner-firewall/terraform.tfvars.example` to that repo's
   `terraform.tfvars` and run `tofu apply` **there**. The rules it opens
-  publicly (`0.0.0.0/0`, because the operator IP roams) are exactly:
+  publicly (`0.0.0.0/0`, because the operator IP roams) are:
   - `tcp/22` — SSH, key-only, backstopped by `fail2ban`.
   - `udp/51820` — WireGuard.
+  - ICMP (ping) — intentional and harmless; useful for reachability checks.
 
-  Nothing else is public. The desktop (xrdp) is bound to the WireGuard
-  interface address only, never the public IP.
+  No other ports are public. In particular, the desktop (xrdp) is never
+  exposed here — it's bound to the WireGuard interface address only,
+  never the public IP.
 - A WireGuard keypair generated on your Mac:
 
   ```bash

@@ -40,7 +40,7 @@ output "login_credentials" {
 }
 
 output "deployacc_sudo_password" {
-  description = "deployacc sudo passwords (store in Ansible Vault), keyed by server name"
+  description = "deployacc sudo passwords (deployacc uses NOPASSWD sudo, so this is unused), keyed by server name"
   value       = { for k, v in random_password.deployacc_sudo_password : k => v.result }
   sensitive   = true
 }
