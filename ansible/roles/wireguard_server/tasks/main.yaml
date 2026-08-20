@@ -1,0 +1,48 @@
+---
+- name: Install wireguard-tools
+  ansible.builtin.apt:
+    name: wireguard-tools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Generate the server private key once (persisted under /etc/wireguard)
+  ansible.builtin.shell:
+    cmd: "umask 077; wg genkey > /etc/wireguard/{{ wg_interface }}.key"
+    creates: "/etc/wireguard/{{ wg_interface }}.key"
+
+- name: Read the server private key
+  ansible.builtin.slurp:
+    src: "/etc/wireguard/{{ wg_interface }}.key"
+  register: wg_priv
+  no_log: true
+
+- name: Derive the server public key
+  ansible.builtin.shell:
+    cmd: "wg pubkey < /etc/wireguard/{{ wg_interface }}.key"
+  register: wg_pub
+  changed_when: false
+
+- name: Set the server private key fact
+  ansible.builtin.set_fact:
+    wg_server_private_key: "{{ wg_priv.content | b64decode | trim }}"
+  no_log: true
+
+- name: Render {{ wg_interface }}.conf
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: "/etc/wireguard/{{ wg_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart wireguard
+
+- name: Enable and start wg-quick
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ wg_interface }}"
+    enabled: true
+    state: started
+
+- name: Show the server public key (paste into the Mac peer config)
+  ansible.builtin.debug:
+    msg: "WireGuard server public key: {{ wg_pub.stdout | trim }}"
