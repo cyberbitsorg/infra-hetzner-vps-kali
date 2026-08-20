@@ -1,0 +1,13 @@
+hcloud_token       = "your-api-token"
+wg_peer_public_key = "REPLACE_WITH_MAC_WG_PUBLIC_KEY"
+base_domain        = "your-domain.com"
+
+servers = {
+  fsn-kali01 = {
+    server_type     = "cx33"
+    server_location = "fsn1"
+    server_image    = "REPLACE_WITH_PHASE0_SNAPSHOT_ID"
+    server_backups  = true
+    data_volume_gb  = 40
+  }
+}
