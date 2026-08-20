@@ -5,17 +5,14 @@ set -euo pipefail
 KALI_BASE_URL="${KALI_BASE_URL:-https://kali.download/cloud-images/current/}"
 
 # Print the absolute URL of the amd64 GenericCloud disk artifact.
-# Prefer .raw.xz (dd-ready), fall back to .qcow2 (needs qemu-img convert).
+# Kali ships GenericCloud only as a .tar.xz containing disk.raw; match that
+# exactly (not the .torrent sibling, not arm64).
 kali_image_url() {
   local html="$1" file
   file="$(printf '%s\n' "$html" \
-    | grep -oE 'kali-linux-[0-9.]+-cloud-genericcloud-amd64\.raw\.xz' \
+    | grep -oE 'kali-linux-[0-9.]+-cloud-genericcloud-amd64\.tar\.xz(\.torrent)?' \
+    | grep -v '\.torrent$' \
     | head -n1 || true)"
-  if [ -z "$file" ]; then
-    file="$(printf '%s\n' "$html" \
-      | grep -oE 'kali-linux-[0-9.]+-cloud-genericcloud-amd64\.qcow2' \
-      | head -n1 || true)"
-  fi
   [ -n "$file" ] || { echo "no amd64 genericcloud artifact found" >&2; return 1; }
   printf '%s%s\n' "$KALI_BASE_URL" "$file"
 }

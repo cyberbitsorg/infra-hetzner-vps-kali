@@ -52,21 +52,28 @@ for _ in $(seq 1 30); do
 done
 
 log "Writing Kali image to /dev/sda inside rescue..."
-# shellcheck disable=SC2034 # reserved for kali_verify_checksum wiring
 SUMS="$(curl -fsSL "${KALI_BASE_URL}SHA256SUMS")"
+WANT_SHA="$(printf '%s\n' "$SUMS" | awk -v b="$(basename "$IMG_URL")" '$2==b || $2=="*"b {print $1; exit}')"
+[ -n "$WANT_SHA" ] || { echo "no checksum entry for image" >&2; exit 1; }
 # Run the download+verify+dd on the rescue box itself (its bandwidth, its disk).
-ssh -o StrictHostKeyChecking=no "root@$IP" bash -s -- "$IMG_URL" <<'REMOTE'
+# Stream the tarball once: tee its sha256 to a side file while extracting
+# disk.raw straight through to /dev/sda, then verify before we trust it.
+ssh -o StrictHostKeyChecking=no "root@$IP" bash -s -- "$IMG_URL" "$WANT_SHA" <<'REMOTE'
 set -euo pipefail
-url="$1"; file="$(basename "$url")"
+url="$1"; want="$2"; file="$(basename "$url")"
 cd /root
-curl -fL "$url" -o "$file"
-case "$file" in
-  *.raw.xz) xz -d -c "$file" | dd of=/dev/sda bs=4M status=progress ;;
-  *.qcow2)  apt-get -y install qemu-utils >/dev/null 2>&1 || true
-            qemu-img convert -f qcow2 -O raw "$file" /dev/sda ;;
-  *) echo "unknown image type: $file" >&2; exit 1 ;;
-esac
+# Stream: compute sha256 of the compressed tarball while extracting disk.raw straight to the disk.
+curl -fL "$url" \
+  | tee >(sha256sum | awk '{print $1}' > /root/dl.sha) \
+  | tar -xJO disk.raw \
+  | dd of=/dev/sda bs=4M status=progress
 sync
+got="$(cat /root/dl.sha)"
+if [ "$want" != "$got" ]; then
+  echo "CHECKSUM MISMATCH for $file: want=$want got=$got" >&2
+  exit 1
+fi
+echo "checksum OK: $file"
 REMOTE
 
 log "Disabling rescue and rebooting into Kali..."
