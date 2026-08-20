@@ -20,6 +20,22 @@ load_lib() { source "${BATS_TEST_DIRNAME}/../scripts/lib/kali-image.sh"; }
   [ "$status" -ne 0 ]
 }
 
+@test "kali_want_sha returns the sha256 for a present basename" {
+  load_lib
+  sums='deadbeef  kali-linux-2026.2-cloud-genericcloud-amd64.tar.xz
+cafef00d  kali-linux-2026.2-cloud-genericcloud-arm64.tar.xz'
+  run kali_want_sha "kali-linux-2026.2-cloud-genericcloud-amd64.tar.xz" "$sums"
+  [ "$status" -eq 0 ]
+  [ "$output" = "deadbeef" ]
+}
+
+@test "kali_want_sha fails for an absent basename" {
+  load_lib
+  sums='cafef00d  kali-linux-2026.2-cloud-genericcloud-arm64.tar.xz'
+  run kali_want_sha "kali-linux-2026.2-cloud-genericcloud-amd64.tar.xz" "$sums"
+  [ "$status" -ne 0 ]
+}
+
 @test "kali_verify_checksum passes on a matching sha256" {
   load_lib
   tmp="$BATS_TEST_TMPDIR/img"; printf 'hello' > "$tmp"

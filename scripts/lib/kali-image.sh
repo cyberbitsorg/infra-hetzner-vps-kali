@@ -17,12 +17,19 @@ kali_image_url() {
   printf '%s%s\n' "$KALI_BASE_URL" "$file"
 }
 
+# Print the expected sha256 for BASENAME from a SHA256SUMS body, or fail.
+kali_want_sha() {
+  local base="$1" sums="$2" want
+  want="$(printf '%s\n' "$sums" | awk -v b="$base" '$2==b || $2=="*"b {print $1; exit}')"
+  [ -n "$want" ] || { echo "no checksum entry for $base" >&2; return 1; }
+  printf '%s\n' "$want"
+}
+
 # Verify FILE against the SHA256SUMS body (portable: shasum or sha256sum).
 kali_verify_checksum() {
   local file="$1" sums="$2" base want got
   base="$(basename "$file")"
-  want="$(printf '%s\n' "$sums" | awk -v b="$base" '$2==b || $2=="*"b {print $1; exit}')"
-  [ -n "$want" ] || { echo "no checksum entry for $base" >&2; return 1; }
+  want="$(kali_want_sha "$base" "$sums")" || return 1
   if command -v sha256sum >/dev/null 2>&1; then
     got="$(sha256sum "$file" | awk '{print $1}')"
   else

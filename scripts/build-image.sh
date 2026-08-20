@@ -9,7 +9,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/kali-image.sh"
 
 SERVER_NAME="${SERVER_NAME:-kali-imagebuilder}"
-SERVER_TYPE="${SERVER_TYPE:-cx33}"
+SERVER_TYPE="${SERVER_TYPE:-cx42}" # 16GB RAM: staging the tarball + verify-before-write needs headroom
 LOCATION="${LOCATION:-fsn1}"
 SSH_KEY_NAME="${SSH_KEY_NAME:-main-deploy-key}"
 BASE_IMAGE="${BASE_IMAGE:-debian-12}" # throwaway OS; we overwrite the disk
@@ -53,27 +53,26 @@ done
 
 log "Writing Kali image to /dev/sda inside rescue..."
 SUMS="$(curl -fsSL "${KALI_BASE_URL}SHA256SUMS")"
-WANT_SHA="$(printf '%s\n' "$SUMS" | awk -v b="$(basename "$IMG_URL")" '$2==b || $2=="*"b {print $1; exit}')"
-[ -n "$WANT_SHA" ] || { echo "no checksum entry for image" >&2; exit 1; }
+WANT_SHA="$(kali_want_sha "$(basename "$IMG_URL")" "$SUMS")"
 # Run the download+verify+dd on the rescue box itself (its bandwidth, its disk).
-# Stream the tarball once: tee its sha256 to a side file while extracting
-# disk.raw straight through to /dev/sda, then verify before we trust it.
+# Stage the tarball, verify its sha256, THEN extract+dd -- verification always
+# happens before anything touches /dev/sda.
 ssh -o StrictHostKeyChecking=no "root@$IP" bash -s -- "$IMG_URL" "$WANT_SHA" <<'REMOTE'
 set -euo pipefail
 url="$1"; want="$2"; file="$(basename "$url")"
 cd /root
-# Stream: compute sha256 of the compressed tarball while extracting disk.raw straight to the disk.
-curl -fL "$url" \
-  | tee >(sha256sum | awk '{print $1}' > /root/dl.sha) \
-  | tar -xJO disk.raw \
-  | dd of=/dev/sda bs=4M status=progress
-sync
-got="$(cat /root/dl.sha)"
+# Stage the compressed tarball, verify, THEN extract+dd. Rescue runs from RAM but
+# /dev/sda is unmounted; stage to /dev/sda is not possible, so stage to a file and
+# rely on rescue tmpfs. If space is a concern, this is the throwaway builder box.
+curl -fL "$url" -o "$file"
+got="$(sha256sum "$file" | awk '{print $1}')"
 if [ "$want" != "$got" ]; then
   echo "CHECKSUM MISMATCH for $file: want=$want got=$got" >&2
   exit 1
 fi
 echo "checksum OK: $file"
+tar -xJO disk.raw < "$file" | dd of=/dev/sda bs=4M status=progress
+sync
 REMOTE
 
 log "Disabling rescue and rebooting into Kali..."
