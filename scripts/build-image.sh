@@ -9,7 +9,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/kali-image.sh"
 
 SERVER_NAME="${SERVER_NAME:-kali-imagebuilder}"
-SERVER_TYPE="${SERVER_TYPE:-cx42}" # 16GB RAM: staging the tarball + verify-before-write needs headroom
+SERVER_TYPE="${SERVER_TYPE:-cx33}" # throwaway builder; the ~223MB tarball stages easily in 8GB RAM
 LOCATION="${LOCATION:-fsn1}"
 SSH_KEY_NAME="${SSH_KEY_NAME:-main-deploy-key}"
 BASE_IMAGE="${BASE_IMAGE:-debian-12}" # throwaway OS; we overwrite the disk

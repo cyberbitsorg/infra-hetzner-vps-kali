@@ -4,3 +4,4 @@ terraform.tfvars
 .terraform/
 .vault_pass
 ansible/inventory/*.generated.*
+.terraform.lock.hcl
