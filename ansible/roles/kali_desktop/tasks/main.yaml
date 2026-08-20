@@ -1,0 +1,39 @@
+---
+- name: Install XFCE and xrdp
+  ansible.builtin.apt:
+    name:
+      - kali-desktop-xfce
+      - xorgxrdp
+      - xrdp
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Make xrdp start an XFCE session for the lab user
+  ansible.builtin.copy:
+    dest: "/home/{{ lab_user }}/.xsession"
+    content: "startxfce4\n"
+    owner: "{{ lab_user }}"
+    group: "{{ lab_user }}"
+    mode: "0644"
+
+- name: Bind xrdp to the wg0 address only (never the public IP)
+  ansible.builtin.lineinfile:
+    path: /etc/xrdp/xrdp.ini
+    regexp: '^\s*address='
+    line: "address={{ wg_server_address | regex_replace('/.*$', '') }}"
+    insertafter: '^\[Globals\]'
+  notify: Restart xrdp
+
+- name: Ensure xrdp reads the bound address on boot
+  ansible.builtin.systemd:
+    name: xrdp
+    enabled: true
+    state: started
+
+- name: Add xrdp user to the ssl-cert group (xrdp key access)
+  ansible.builtin.user:
+    name: xrdp
+    groups: ssl-cert
+    append: true
+  notify: Restart xrdp
