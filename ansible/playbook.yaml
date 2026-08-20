@@ -1,0 +1,15 @@
+---
+- name: Configure Kali VPS
+  hosts: kali
+  become: true
+  gather_facts: true
+
+  vars:
+    lab_user: "{{ hostvars[inventory_hostname]['lab_username'] | default('lab', true) }}"
+
+  roles:
+    - { role: common,           tags: [common, base] }
+    - { role: wireguard_server, tags: [wireguard, wg, network] }
+    - { role: persistence,      tags: [persistence, home] }
+    - { role: kali_desktop,     tags: [desktop, gui, xrdp] }
+    - { role: kali_toolset,     tags: [toolset, tools] }
