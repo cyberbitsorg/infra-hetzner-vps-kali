@@ -6,9 +6,9 @@ public internet: it rides a WireGuard tunnel only.
 
 Provisioning is two phases:
 
-- **Phase 0** — `make image` builds a one-time Kali snapshot and prints its
+- **Phase 0**: `make image` builds a one-time Kali snapshot and prints its
   ID.
-- **Phase 1** — `tofu apply` creates the server from that snapshot plus a
+- **Phase 1**: `tofu apply` creates the server from that snapshot plus a
   persistent `/home` volume, then Ansible configures WireGuard, the desktop,
   and the toolset.
 
@@ -24,13 +24,13 @@ Provisioning is two phases:
   `infra-hetzner-firewall/terraform.tfvars.example` to that repo's
   `terraform.tfvars` and run `tofu apply` **there**. The rules it opens
   publicly (`0.0.0.0/0`, because the operator IP roams) are:
-  - `tcp/22` — SSH, key-only, backstopped by `fail2ban`.
-  - `udp/51820` — WireGuard.
-  - ICMP (ping) — intentional and harmless; useful for reachability checks.
+  - `tcp/22`: SSH, key-only, backstopped by `fail2ban`.
+  - `udp/51820`: WireGuard.
+  - ICMP (ping): intentional and harmless; useful for reachability checks.
 
   No other ports are public. In particular, the desktop (xrdp) is never
-  exposed here — it's bound to the WireGuard interface address only,
-  never the public IP.
+  exposed here; it binds to the WireGuard interface address only, never the
+  public IP.
 - A WireGuard keypair generated on your Mac:
 
   ```bash
@@ -44,7 +44,7 @@ Provisioning is two phases:
   `hcloud` CLI directly). Phase 1 reads the token from `terraform.tfvars`
   (`hcloud_token`).
 
-## Phase 0 — build the snapshot (one-time)
+## Phase 0: build the snapshot (one-time)
 
 ```bash
 export HCLOUD_TOKEN=...
@@ -57,7 +57,7 @@ This runs `scripts/build-image.sh`, which:
    (`kali-linux-*-cloud-genericcloud-amd64.tar.xz`, which contains
    `disk.raw`) from `kali.download`.
 2. Creates a **throwaway** builder server (`cx33`/`fsn1` by default, a
-   plain Debian 12 image — the OS is irrelevant since the disk gets
+   plain Debian 12 image; the OS is irrelevant since the disk gets
    overwritten).
 3. Boots it into Hetzner's rescue system, downloads the Kali tarball there,
    **verifies its sha256 against the published `SHA256SUMS` before touching
@@ -66,7 +66,7 @@ This runs `scripts/build-image.sh`, which:
    server, and deletes the throwaway server.
 5. Prints the resulting **snapshot ID** to stdout.
 
-That snapshot ID is an input, not a stock Hetzner image — copy it into
+That snapshot ID is an input, not a stock Hetzner image. Copy it into
 `terraform.tfvars` as `servers.<name>.server_image`. Re-run `make image`
 whenever you want a refreshed Kali build; each run produces a new snapshot
 ID and does not touch any running server.
@@ -74,7 +74,7 @@ ID and does not touch any running server.
 `bash scripts/build-image.sh --dry-run` resolves and prints the image URL
 without creating any Hetzner resources.
 
-## Phase 1 — provision the server
+## Phase 1: provision the server
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
@@ -82,10 +82,10 @@ cp terraform.tfvars.example terraform.tfvars
 
 Edit `terraform.tfvars`:
 
-- `hcloud_token` — your Hetzner Cloud API token.
-- `wg_peer_public_key` — the WireGuard public key generated above.
-- `base_domain` — used to build the server's FQDN / rDNS PTR.
-- `servers.<name>.server_image` — the snapshot ID from Phase 0.
+- `hcloud_token`: your Hetzner Cloud API token.
+- `wg_peer_public_key`: the WireGuard public key generated above.
+- `base_domain`: used to build the server's FQDN / rDNS PTR.
+- `servers.<name>.server_image`: the snapshot ID from Phase 0.
 - Optionally adjust `server_type` (default `cx33`), `server_location`
   (default `fsn1`), `data_volume_gb` (default `40`, the persistent
   `/home` volume size).
@@ -106,9 +106,10 @@ This creates, per entry in the `servers` map:
   `${lab_username}` user (default `lab`), locks down SSH to key-only /
   those two users, and disables root login.
 - A reverse-DNS PTR record (`hcloud_rdns`) for the server's FQDN.
-- A persistent `hcloud_volume` for `/home` (`prevent_destroy` — surviving
-  server rebuilds is the point) attached to the server but **not**
-  auto-mounted; Ansible does the mount, deliberately, see below.
+- A persistent `hcloud_volume` for `/home`. It is `prevent_destroy`d,
+  because surviving server rebuilds is the point, and it is attached to the
+  server but **not** auto-mounted; Ansible does the mount, deliberately, see
+  below.
 
 Wait for cloud-init to finish, then set up the Ansible Vault and run
 Ansible:
@@ -120,36 +121,36 @@ ansible-playbook -i ansible/inventory/terraform.py ansible/playbook.yaml
 ```
 
 `ansible/inventory/terraform.py` is a dynamic inventory that shells out to
-`tofu output -json` — no static inventory file to keep in sync.
+`tofu output -json`, so there is no static inventory file to keep in sync.
 `deployacc`'s sudo is password-protected; `ansible-vault-setup.sh` reads
 its password from `tofu output -json deployacc_sudo_password` and writes
 it, encrypted, to `ansible/group_vars/all/vault.yaml` (prompting to create
-`.vault_pass`, gitignored, on first run). Run it before the playbook —
+`.vault_pass`, gitignored, on first run). Run it before the playbook;
 Ansible has nothing to `become` with until the vault exists.
 
 The playbook applies, in order:
 
-1. **`common`** — timezone, base packages, unattended-upgrades, and a
+1. **`common`**: timezone, base packages, unattended-upgrades, and a
    `fail2ban` sshd jail (backstop behind the key-only SSH).
-2. **`wireguard_server`** — installs `wireguard-tools`, generates the
+2. **`wireguard_server`**: installs `wireguard-tools`, generates the
    server's WireGuard keypair on the box on first run (the private key
    never leaves it), renders `/etc/wireguard/wg0.conf` with the operator's
    public key (from `terraform.tfvars`) as the sole peer, and brings up
    `wg-quick@wg0`. **The server's WireGuard public key is printed in the
-   Ansible output** — copy it into your Mac's `wg0.conf`.
-3. **`persistence`** — mounts the persistent `/home` volume. On first use
+   Ansible output**; copy it into your Mac's `wg0.conf`.
+3. **`persistence`**: mounts the persistent `/home` volume. On first use
    it formats the volume ext4, then **seeds it from the current `/home`
-   (including `~/.ssh/authorized_keys`) before mounting it in place** —
-   never mount-then-populate, or the mount would bury the SSH key the
+   (including `~/.ssh/authorized_keys`) before mounting it in place**.
+   Never mount-then-populate, or the mount would bury the SSH key the
    session is authenticated with and lock you out. Subsequent runs detect
    the volume is already seeded/mounted and skip straight to the
    `mounted` state (idempotent).
-4. **`kali_desktop`** — installs `kali-desktop-xfce` and `xrdp`, sets the
-   lab user's session to XFCE, and — critically — **binds xrdp to the wg0
-   address only** (`address=10.99.0.1` in `xrdp.ini`), so RDP is
-   unreachable from the public IP even if the cloud firewall were
-   misconfigured.
-5. **`kali_toolset`** — installs `kali-linux-default` (the full Kali tool
+4. **`kali_desktop`**: installs `kali-desktop-xfce` and `xrdp`, sets the
+   lab user's session to XFCE, and, critically, **binds xrdp to the wg0
+   address only** (`port=tcp://10.99.0.1:3389` in `xrdp.ini`, ordered after
+   `wg-quick@wg0` so the interface is up first), so RDP is unreachable from
+   the public IP even if the cloud firewall were misconfigured.
+5. **`kali_toolset`**: installs `kali-linux-default` (the full Kali tool
    meta-package: `nmap`, `msfconsole`, etc.). This is a large install; the
    task runs async with a long poll.
 
@@ -197,27 +198,27 @@ their network. This box's public IP should be treated accordingly:
 - Route THM/HTB/CTF and other lab traffic through the lab's own VPN, or a
   Mullvad-style egress tunnel, so Hetzner only ever sees encrypted tunnel
   traffic leaving the box.
-- Avoid hosting callback listeners or payloads on the public IP — that
+- Avoid hosting callback listeners or payloads on the public IP; that
   traffic is visible to Hetzner and carries real suspension risk. Keep
   listeners inside lab VPNs where possible; treat anything exposed on the
   public IP as transient and burnable.
 - Offensive traffic against real (non-lab) targets requires written
   authorisation. This repo does not open any standing public listener
-  beyond SSH and WireGuard — everything else stays behind the tunnel.
+  beyond SSH and WireGuard; everything else stays behind the tunnel.
 
 ## Repository layout
 
-- `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `providers.tf` —
-  OpenTofu: server, rDNS, persistent volume, and their outputs consumed by
-  the Ansible dynamic inventory.
-- `cloud-init-bootstrap.yaml` — first-boot user/SSH hardening template
+- `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `providers.tf`:
+  the OpenTofu config (server, rDNS, persistent volume, and their outputs
+  consumed by the Ansible dynamic inventory).
+- `cloud-init-bootstrap.yaml`: first-boot user/SSH hardening template
   rendered into `hcloud_server.user_data`.
-- `scripts/build-image.sh`, `scripts/lib/kali-image.sh` — Phase 0 imaging
+- `scripts/build-image.sh`, `scripts/lib/kali-image.sh`: Phase 0 imaging
   script and its pure, unit-tested helper functions.
-- `ansible/` — playbook, roles (`common`, `wireguard_server`,
+- `ansible/`: playbook, roles (`common`, `wireguard_server`,
   `persistence`, `kali_desktop`, `kali_toolset`), and the
   `terraform.py` dynamic inventory.
-- `tests/` — `bats` tests for the Phase 0 shell helpers, run via
+- `tests/`: `bats` tests for the Phase 0 shell helpers, run via
   `tests/run.sh`.
-- `Makefile` — `make fmt`, `make validate`, `make lint`, `make test`,
+- `Makefile`: `make fmt`, `make validate`, `make lint`, `make test`,
   `make image`.
