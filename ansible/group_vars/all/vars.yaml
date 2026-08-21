@@ -1,0 +1,6 @@
+---
+lab_user: lab
+wg_interface: wg0
+
+# Sudo password for deployacc (stored in ansible/group_vars/all/vault.yaml)
+ansible_become_password: "{{ vault_deployacc_sudo_passwords[inventory_hostname] }}"

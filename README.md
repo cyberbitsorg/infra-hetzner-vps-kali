@@ -102,7 +102,7 @@ This creates, per entry in the `servers` map:
 - An `hcloud_server` built from the Phase 0 snapshot, attached to the
   `kali-wg-firewall` firewall and the SSH key from `infra-hetzner-ssh`.
   `cloud-init-bootstrap.yaml` runs on first boot: creates the `deployacc`
-  user (passwordless sudo, used by Ansible) and the interactive
+  user (password sudo, used by Ansible) and the interactive
   `${lab_username}` user (default `lab`), locks down SSH to key-only /
   those two users, and disables root login.
 - A reverse-DNS PTR record (`hcloud_rdns`) for the server's FQDN.
@@ -110,18 +110,22 @@ This creates, per entry in the `servers` map:
   server rebuilds is the point) attached to the server but **not**
   auto-mounted; Ansible does the mount, deliberately, see below.
 
-Wait for cloud-init to finish, then run Ansible:
+Wait for cloud-init to finish, then set up the Ansible Vault and run
+Ansible:
 
 ```bash
 ssh deployacc@<server-ip> 'cloud-init status --wait'
+./ansible-vault-setup.sh
 ansible-playbook -i ansible/inventory/terraform.py ansible/playbook.yaml
 ```
 
 `ansible/inventory/terraform.py` is a dynamic inventory that shells out to
-`tofu output -json` — no static inventory file to keep in sync. There is
-**no Ansible Vault** in this repo: `deployacc` already has passwordless
-sudo from cloud-init, so there is no secret to vault-encrypt for the
-playbook run.
+`tofu output -json` — no static inventory file to keep in sync.
+`deployacc`'s sudo is password-protected; `ansible-vault-setup.sh` reads
+its password from `tofu output -json deployacc_sudo_password` and writes
+it, encrypted, to `ansible/group_vars/all/vault.yaml` (prompting to create
+`.vault_pass`, gitignored, on first run). Run it before the playbook —
+Ansible has nothing to `become` with until the vault exists.
 
 The playbook applies, in order:
 
