@@ -14,21 +14,21 @@
 - name: Read the server private key
   ansible.builtin.slurp:
     src: "/etc/wireguard/{{ wg_interface }}.key"
-  register: wg_priv
+  register: wireguard_server_priv
   no_log: true
 
 - name: Derive the server public key
   ansible.builtin.shell:
     cmd: "wg pubkey < /etc/wireguard/{{ wg_interface }}.key"
-  register: wg_pub
+  register: wireguard_server_pub
   changed_when: false
 
 - name: Set the server private key fact
   ansible.builtin.set_fact:
-    wg_server_private_key: "{{ wg_priv.content | b64decode | trim }}"
+    wg_server_private_key: "{{ wireguard_server_priv.content | b64decode | trim }}"  # noqa: var-naming[no-role-prefix] -- contract var consumed by wg0.conf.j2
   no_log: true
 
-- name: Render {{ wg_interface }}.conf
+- name: Render the WireGuard interface config
   ansible.builtin.template:
     src: wg0.conf.j2
     dest: "/etc/wireguard/{{ wg_interface }}.conf"
@@ -46,4 +46,4 @@
 
 - name: Show the server public key (paste into the Mac peer config)
   ansible.builtin.debug:
-    msg: "WireGuard server public key: {{ wg_pub.stdout | trim }}"
+    msg: "WireGuard server public key: {{ wireguard_server_pub.stdout | trim }}"

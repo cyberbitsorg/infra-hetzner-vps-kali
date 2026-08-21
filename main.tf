@@ -33,7 +33,6 @@ resource "hcloud_server" "kali" {
     lab_username            = var.lab_username
     ssh_public_key          = file(pathexpand(var.ssh_public_key_path))
     timezone                = var.timezone
-    fqdn                    = local.fqdn[each.key]
     admin_password          = random_password.admin_password[each.key].result
     deployacc_sudo_password = random_password.deployacc_sudo_password[each.key].result
   })

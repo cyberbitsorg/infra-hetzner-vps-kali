@@ -6,7 +6,12 @@ import json, os, subprocess, sys
 def outputs():
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     r = subprocess.run(["tofu", "output", "-json"], capture_output=True, text=True, cwd=root)
-    return json.loads(r.stdout)
+    if r.returncode != 0 or not r.stdout.strip():
+        return {}
+    try:
+        return json.loads(r.stdout)
+    except json.JSONDecodeError:
+        return {}
 
 
 def main():

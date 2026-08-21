@@ -11,21 +11,22 @@
 
 - name: Check whether /home is already its own mount
   ansible.builtin.command: findmnt -no SOURCE /home
-  register: home_src
+  register: persistence_home_src
   changed_when: false
   failed_when: false
 
 - name: Detect the volume's current filesystem (if any)
   ansible.builtin.command: "blkid -o value -s TYPE {{ data_volume_device }}"
-  register: vol_fstype
+  register: persistence_vol_fstype
   changed_when: false
   failed_when: false
 
 - name: Format the volume ext4 with label KALIHOME on first use
   ansible.builtin.command: "mkfs.ext4 -L KALIHOME {{ data_volume_device }}"
   when:
-    - (home_src.stdout | trim) | length == 0
-    - (vol_fstype.stdout | trim) | length == 0
+    - (persistence_home_src.stdout | trim) | length == 0
+    - (persistence_vol_fstype.stdout | trim) | length == 0
+  changed_when: true
 
 - name: Seed the volume from the current /home before mounting
   ansible.builtin.shell:
@@ -38,7 +39,7 @@
         tar -C /home --one-file-system -cf - . | tar -C /mnt/newhome -xpf -
       fi
     executable: /bin/bash
-  when: (home_src.stdout | trim) | length == 0
+  when: (persistence_home_src.stdout | trim) | length == 0
   changed_when: true
 
 - name: Add the fstab entry for /home keyed by LABEL
