@@ -20,9 +20,29 @@
 - name: Bind xrdp to the wg0 address only (never the public IP)
   ansible.builtin.lineinfile:
     path: /etc/xrdp/xrdp.ini
-    regexp: '^\s*address='
-    line: "address={{ wg_server_address | regex_replace('/.*$', '') }}"
+    regexp: '^\s*port='
+    line: "port=tcp://{{ wg_server_address | regex_replace('/.*$', '') }}:3389"
     insertafter: '^\[Globals\]'
+  notify: Restart xrdp
+
+- name: Ensure the xrdp systemd drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/xrdp.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Order xrdp after the WireGuard interface (xrdp must bind an up interface)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/xrdp.service.d/10-wireguard.conf
+    content: |
+      [Unit]
+      After=wg-quick@{{ wg_interface }}.service
+      Requires=wg-quick@{{ wg_interface }}.service
+    owner: root
+    group: root
+    mode: "0644"
   notify: Restart xrdp
 
 - name: Ensure xrdp reads the bound address on boot

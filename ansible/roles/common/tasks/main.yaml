@@ -1,8 +1,4 @@
 ---
-- name: Set timezone
-  community.general.timezone:
-    name: "{{ hostvars[inventory_hostname]['timezone'] | default('Europe/Amsterdam', true) }}"
-
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true

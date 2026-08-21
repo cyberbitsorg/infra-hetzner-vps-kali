@@ -33,7 +33,6 @@ runcmd:
   - echo "AllowUsers deployacc ${lab_username}" >> /etc/ssh/sshd_config.d/01-ansible.conf
   - systemctl restart ssh || systemctl restart sshd
   - echo "${lab_username}:${admin_password}" | chpasswd
-  - echo "deployacc:${deployacc_sudo_password}" | chpasswd
   - touch /var/log/ansible-bootstrap-complete
 
 final_message: "Bootstrap complete. Run the Ansible playbook."

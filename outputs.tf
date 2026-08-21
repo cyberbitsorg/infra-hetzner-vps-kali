@@ -39,12 +39,6 @@ output "login_credentials" {
   sensitive   = true
 }
 
-output "deployacc_sudo_password" {
-  description = "deployacc sudo passwords (deployacc uses NOPASSWD sudo, so this is unused), keyed by server name"
-  value       = { for k, v in random_password.deployacc_sudo_password : k => v.result }
-  sensitive   = true
-}
-
 output "data_volume_device" {
   description = "Stable by-id device path of the persistent /home volume, keyed by server"
   value       = { for k, v in hcloud_volume.home : k => "/dev/disk/by-id/scsi-0HC_Volume_${v.id}" }

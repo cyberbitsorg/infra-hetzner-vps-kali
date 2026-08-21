@@ -12,12 +12,6 @@ resource "random_password" "admin_password" {
   special  = false
 }
 
-resource "random_password" "deployacc_sudo_password" {
-  for_each = var.servers
-  length   = 32
-  special  = false
-}
-
 resource "hcloud_server" "kali" {
   for_each     = var.servers
   name         = each.key
@@ -29,13 +23,12 @@ resource "hcloud_server" "kali" {
   firewall_ids = [data.hcloud_firewall.default.id]
 
   user_data = templatefile("${path.module}/cloud-init-bootstrap.yaml", {
-    server_name             = each.key
-    lab_username            = var.lab_username
-    ssh_public_key          = file(pathexpand(var.ssh_public_key_path))
-    timezone                = var.timezone
-    fqdn                    = local.fqdn[each.key]
-    admin_password          = random_password.admin_password[each.key].result
-    deployacc_sudo_password = random_password.deployacc_sudo_password[each.key].result
+    server_name    = each.key
+    lab_username   = var.lab_username
+    ssh_public_key = file(pathexpand(var.ssh_public_key_path))
+    timezone       = var.timezone
+    fqdn           = local.fqdn[each.key]
+    admin_password = random_password.admin_password[each.key].result
   })
 
   public_net {
