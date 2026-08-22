@@ -17,34 +17,40 @@ Provisioning is two phases:
 - `hcloud` CLI, `tofu`, `ansible-playbook`, `ssh`, `curl` installed locally.
 - An SSH key already registered in Hetzner Cloud, managed by the sibling
   `infra-hetzner-ssh` repo (default name `main-deploy-key`).
-- The `kali-wg-firewall` firewall already applied in Hetzner Cloud, managed
-  by the sibling `infra-hetzner-firewall` repo. This repo does not create
-  firewall rules; it only attaches to a firewall that must already exist. To
-  create it: add the `kali` entry from
-  `infra-hetzner-firewall/terraform.tfvars.example` to that repo's
-  `terraform.tfvars` and run `tofu apply` **there**. The rules it opens
-  publicly (`0.0.0.0/0`, because the operator IP roams) are:
-  - `tcp/22`: SSH, key-only, backstopped by `fail2ban`.
-  - `udp/51820`: WireGuard.
-  - ICMP (ping): intentional and harmless; useful for reachability checks.
-
-  No other ports are public. In particular, the desktop (xrdp) is never
-  exposed here; it binds to the WireGuard interface address only, never the
-  public IP.
-- A WireGuard keypair generated on your Mac:
-
-  ```bash
-  wg genkey | tee privatekey | wg pubkey
-  ```
-
-  Keep `privatekey` local; you'll paste the **public** key into
-  `terraform.tfvars`.
-
 - `HCLOUD_TOKEN` exported in your shell for Phase 0 (`make image` uses
   `packer` with the `hcloud` plugin directly). Phase 1 reads the token from
   `terraform.tfvars` (`hcloud_token`).
 - `packer` installed, with the Hetzner Cloud plugin:
   `packer plugins install github.com/hetznercloud/hcloud`.
+
+### Firewall
+
+The `kali-wg-firewall` firewall must already be applied in Hetzner Cloud,
+managed by the sibling `infra-hetzner-firewall` repo. This repo does not
+create firewall rules; it only attaches to a firewall that must already
+exist. To create it: add the `kali` entry from
+`infra-hetzner-firewall/terraform.tfvars.example` to that repo's
+`terraform.tfvars` and run `tofu apply` **there**. The rules it opens
+publicly (`0.0.0.0/0`, because the operator IP roams) are:
+
+- `tcp/22`: SSH, key-only, backstopped by `fail2ban`.
+- `udp/51820`: WireGuard.
+- ICMP (ping): intentional and harmless; useful for reachability checks.
+
+No other ports are public. In particular, the desktop (xrdp) is never
+exposed here; it binds to the WireGuard interface address only, never the
+public IP.
+
+### WireGuard keypair
+
+Generate a keypair on your Mac:
+
+```bash
+wg genkey | tee privatekey | wg pubkey
+```
+
+Keep `privatekey` local; you'll paste the **public** key into
+`terraform.tfvars`.
 
 ## Phase 0: build the snapshot (one-time)
 
@@ -53,7 +59,9 @@ export HCLOUD_TOKEN=...
 make image
 ```
 
-This runs `packer build` against `packer/kali-image.pkr.hcl`, which:
+This runs `packer build` against `packer/kali-image.pkr.hcl`.
+
+### What it does
 
 1. Creates a **throwaway** builder server (`cx33`/`fsn1` by default, a
    plain Debian 12 image; the OS is irrelevant since the disk gets
@@ -74,6 +82,8 @@ ID and does not touch any running server.
 
 ## Phase 1: provision the server
 
+### Configure `terraform.tfvars`
+
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
@@ -93,7 +103,7 @@ Edit `terraform.tfvars`:
   and `kali_mullvad` (default `false`). These are read by Ansible via
   `terraform.py`, the same way `wg_listen_port` already is.
 
-Then:
+### Create the server
 
 ```bash
 tofu init
@@ -114,8 +124,7 @@ This creates, per entry in the `servers` map:
   server but **not** auto-mounted; Ansible does the mount, deliberately, see
   below.
 
-Wait for cloud-init to finish, then set up the Ansible Vault and run
-Ansible:
+### Bootstrap and run Ansible
 
 ```bash
 ssh deployacc@<server-ip> 'cloud-init status --wait'
@@ -134,6 +143,8 @@ Ansible has nothing to `become` with until the vault exists.
 The interactive `${lab_username}` user's login/sudo password (a separate
 random value from `deployacc`'s) is in `tofu output -json
 login_credentials`; needed for RDP and console login.
+
+### What the playbook does
 
 The playbook applies, in order:
 
@@ -175,30 +186,36 @@ The playbook applies, in order:
 
 ## Connecting
 
-1. Bring up WireGuard on the Mac using the private key you generated and
-   the server's public key printed during the Ansible run:
+### WireGuard
 
-   ```ini
-   # wg0.conf
-   [Interface]
-   PrivateKey = <your Mac private key>
-   Address = 10.99.0.2/32
+Bring up WireGuard on the Mac using the private key you generated and the
+server's public key printed during the Ansible run:
 
-   [Peer]
-   PublicKey = <server public key, printed by the wireguard_server role>
-   Endpoint = <server-ip>:51820
-   AllowedIPs = 10.99.0.1/32
-   ```
+```ini
+# wg0.conf
+[Interface]
+PrivateKey = <your Mac private key>
+Address = 10.99.0.2/32
 
-   ```bash
-   wg-quick up wg0
-   ```
+[Peer]
+PublicKey = <server public key, printed by the wireguard_server role>
+Endpoint = <server-ip>:51820
+AllowedIPs = 10.99.0.1/32
+```
 
-2. RDP to `10.99.0.1` (only reachable once the tunnel is up) and log in to
-   XFCE as `lab`.
+```bash
+wg-quick up wg0
+```
 
-3. SSH access (over the public IP, key-only): `ssh lab@<server-ip>` or
-   `ssh deployacc@<server-ip>`.
+### RDP
+
+RDP to `10.99.0.1` (only reachable once the tunnel is up) and log in to
+XFCE as `lab`.
+
+### SSH
+
+SSH access (over the public IP, key-only): `ssh lab@<server-ip>` or
+`ssh deployacc@<server-ip>`.
 
 ## Persistence across rebuilds
 
