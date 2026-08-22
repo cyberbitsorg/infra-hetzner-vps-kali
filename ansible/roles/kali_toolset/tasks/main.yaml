@@ -1,10 +1,18 @@
 ---
-- name: Install the full Kali default toolset
+- name: Pick the package list for kali_toolset
+  ansible.builtin.set_fact:
+    kali_toolset_packages: >-
+      {{ kali_toolset_packages_curated if (kali_toolset | default('default')) == 'curated'
+         else kali_toolset_packages_headless if (kali_toolset | default('default')) == 'headless'
+         else kali_toolset_packages_large if (kali_toolset | default('default')) == 'large'
+         else kali_toolset_packages_default }}
+
+- name: Install the Kali toolset tier {{ kali_toolset | default('default') }}
   ansible.builtin.apt:
-    name: kali-linux-default
+    name: "{{ kali_toolset_packages }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
-  # This is large; give it room.
+  # kali-linux-default/-large are large; give the install room.
   async: 3600
   poll: 30

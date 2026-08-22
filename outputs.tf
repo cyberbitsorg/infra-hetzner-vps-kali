@@ -33,6 +33,21 @@ output "wg_listen_port" {
   value = var.wg_listen_port
 }
 
+output "kali_gui" {
+  description = "Desktop toggle, read by Ansible"
+  value       = var.kali_gui
+}
+
+output "kali_toolset" {
+  description = "Kali package tier, read by Ansible"
+  value       = var.kali_toolset
+}
+
+output "kali_mullvad" {
+  description = "Mullvad install toggle, read by Ansible"
+  value       = var.kali_mullvad
+}
+
 output "login_credentials" {
   description = "Initial lab passwords (change after first login), keyed by server name"
   value       = { for k, v in random_password.admin_password : k => v.result }

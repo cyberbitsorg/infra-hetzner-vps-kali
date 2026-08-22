@@ -27,6 +27,9 @@ def main():
             "wg_peer_address": o.get("wg_peer_address", {}).get("value", "10.99.0.2/32"),
             "wg_peer_public_key": o.get("wg_peer_public_key", {}).get("value", ""),
             "wg_listen_port": o.get("wg_listen_port", {}).get("value", 51820),
+            "kali_gui": o.get("kali_gui", {}).get("value", "xfce"),
+            "kali_toolset": o.get("kali_toolset", {}).get("value", "default"),
+            "kali_mullvad": o.get("kali_mullvad", {}).get("value", False),
         }
         inv = {"kali": {"hosts": list(ips.keys())},
                "_meta": {"hostvars": {}}}

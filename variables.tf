@@ -39,6 +39,32 @@ variable "lab_username" {
   default     = "lab"
 }
 
+variable "kali_gui" {
+  description = "Desktop on the box: \"xfce\" or \"none\" (headless, no xrdp)"
+  type        = string
+  default     = "xfce"
+  validation {
+    condition     = contains(["xfce", "none"], var.kali_gui)
+    error_message = "kali_gui must be \"xfce\" or \"none\"."
+  }
+}
+
+variable "kali_toolset" {
+  description = "Kali package tier: curated, headless, default, or large"
+  type        = string
+  default     = "default"
+  validation {
+    condition     = contains(["curated", "headless", "default", "large"], var.kali_toolset)
+    error_message = "kali_toolset must be one of: curated, headless, default, large."
+  }
+}
+
+variable "kali_mullvad" {
+  description = "Install Mullvad VPN (+ Mullvad Browser if kali_gui != none). Off adds nothing; on adds a third-party apt repo."
+  type        = bool
+  default     = false
+}
+
 variable "wg_listen_port" {
   description = "WireGuard UDP listen port on the server"
   type        = number

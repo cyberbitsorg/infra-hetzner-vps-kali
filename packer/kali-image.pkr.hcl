@@ -2,13 +2,11 @@
 # rescue mode + dd raw image to /dev/sda, modeled on:
 # https://tatusl.dev/posts/customized-hcloud-images-with-packer/
 #
-# A hand-rolled version of this (create server, enable rescue, ssh in, dd,
-# then disable-rescue + reboot into the new OS + wait for SSH before
-# snapshotting) reliably crashed the rescue kernel: rebooting it right after
-# its own boot disk's partition table gets rewritten out from under it, live,
-# turned out to be the trigger. Packer's flow never reboots the rescue kernel
-# at all -- it powers the server off (hypervisor-level, no guest cooperation
-# needed) and snapshots it off, which is what actually works.
+# Snapshots the server powered off, straight from rescue mode, never
+# rebooting into the freshly-written disk first: rebooting the rescue kernel
+# right after its own boot disk's partition table changes underneath it,
+# live, reliably crashed it. A poweroff needs no guest cooperation and
+# avoids that entirely.
 #
 # Requires: packer, the hcloud plugin (packer plugins install
 # github.com/hetznercloud/hcloud), HCLOUD_TOKEN in env, an SSH key already in
@@ -81,10 +79,9 @@ build {
       "got=$(sha256sum \"$file\" | awk '{print $1}')",
       "[ \"$want\" = \"$got\" ] || { echo \"CHECKSUM MISMATCH: want=$want got=$got\" >&2; exit 1; }",
       "echo \"checksum OK: $file\"",
-      # disk.raw is a GNU old-style sparse tar member (~25GB nominal, ~1GB
-      # real data). Extracting straight to a pipe (tar -xO | dd) corrupts
-      # partway through: sparse-hole reconstruction needs lseek/ftruncate on
-      # a real file, which a pipe can't provide. Extract to a real file first.
+      # disk.raw is a sparse tar member; extracting straight to a pipe
+      # (tar -xO | dd) corrupts partway through since sparse-hole
+      # reconstruction needs a real, seekable file. Extract to one first.
       "tar -xJf \"$file\" disk.raw",
       "dd if=disk.raw of=/dev/sda bs=4M status=progress",
       "sync"

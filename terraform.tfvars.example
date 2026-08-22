@@ -54,6 +54,23 @@ ssh_key_name        = "main-deploy-key"
 lab_username = "lab"
 
 # =============================================================================
+# Kali provisioning (read by Ansible via terraform.py, same as wg_listen_port)
+# =============================================================================
+
+# kali_gui:     "xfce" (desktop + xrdp) or "none" (headless, no desktop)
+# kali_toolset: "curated" (a lean pentest set), "headless" (kali-linux-headless),
+#               "default" (kali-linux-default), or "large" (kali-linux-large)
+# kali_mullvad: install Mullvad VPN (+ Mullvad Browser if kali_gui != none).
+#               Off by default -- it adds a third-party apt repo. SSH and
+#               WireGuard are exempted from Mullvad's tunnel regardless, so
+#               management access survives a connected tunnel; see
+#               ansible/roles/kali_mullvad.
+
+# kali_gui     = "xfce"
+# kali_toolset = "default"
+# kali_mullvad = false
+
+# =============================================================================
 # Domain configuration
 # =============================================================================
 

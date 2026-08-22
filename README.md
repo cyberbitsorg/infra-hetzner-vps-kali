@@ -72,11 +72,9 @@ Packer prints the resulting **snapshot ID**. Copy it into
 whenever you want a refreshed Kali build; each run produces a new snapshot
 ID and does not touch any running server.
 
-Note: the builder server is powered off and snapshotted directly from
-rescue mode -- it never reboots into the freshly-written Kali disk before
-snapshotting. Rebooting the rescue kernel right after it rewrites its own
-boot disk's partition table live turned out to reliably crash it; powering
-off (hypervisor-level, no guest cooperation needed) avoids that entirely.
+The builder is snapshotted powered off, straight from rescue mode -- see the
+top of `packer/kali-image.pkr.hcl` for why it never reboots into the
+freshly-written disk first.
 
 ## Phase 1: provision the server
 
@@ -94,6 +92,10 @@ Edit `terraform.tfvars`:
   (default `fsn1`), `data_volume_gb` (default `40`, the persistent
   `/home` volume size), and `lab_username` (default `lab`, the interactive
   SSH + desktop user cloud-init creates).
+- Optionally adjust `kali_gui` (default `xfce`, or `none` for headless),
+  `kali_toolset` (default `default`; also `curated`, `headless`, `large`),
+  and `kali_mullvad` (default `false`). These are read by Ansible via
+  `terraform.py`, the same way `wg_listen_port` already is.
 
 Then:
 
@@ -150,14 +152,26 @@ The playbook applies, in order:
    session is authenticated with and lock you out. Subsequent runs detect
    the volume is already seeded/mounted and skip straight to the
    `mounted` state (idempotent).
-4. **`kali_desktop`**: installs `kali-desktop-xfce` and `xrdp`, sets the
-   lab user's session to XFCE, and, critically, **binds xrdp to the wg0
-   address only** (`port=tcp://10.99.0.1:3389` in `xrdp.ini`, ordered after
-   `wg-quick@wg0` so the interface is up first), so RDP is unreachable from
-   the public IP even if the cloud firewall were misconfigured.
-5. **`kali_toolset`**: installs `kali-linux-default` (the full Kali tool
-   meta-package: `nmap`, `msfconsole`, etc.). This is a large install; the
-   task runs async with a long poll.
+4. **`kali_desktop`** (skipped when `kali_gui = "none"`): installs
+   `kali-desktop-xfce` and `xrdp`, sets the lab user's session to XFCE, and,
+   critically, **binds xrdp to the wg0 address only**
+   (`port=tcp://10.99.0.1:3389` in `xrdp.ini`, ordered after `wg-quick@wg0`
+   so the interface is up first), so RDP is unreachable from the public IP
+   even if the cloud firewall were misconfigured.
+5. **`kali_mullvad`** (only if `kali_mullvad = true`): installs the Mullvad
+   VPN app (+ Mullvad Browser when there's a desktop) from Mullvad's own apt
+   repo. `false` is a real removal (packages purged, repo and key taken back
+   out), not a skip. Mullvad never auto-connects -- that stays a manual
+   `mullvad account login` + `mullvad connect` on the box. Whenever it's
+   installed, persistent nftables rules exempt SSH (22) and WireGuard
+   (`wg_listen_port`) from Mullvad's tunnel enforcement, so a connected
+   kill switch can't lock you out of managing the box -- this box is reached
+   over its public IP, not a local range Mullvad's "allow LAN" would cover.
+6. **`kali_toolset`**: installs the tier picked by `kali_toolset` --
+   `curated` (a lean pentest set: `nmap`, `gobuster`, `sqlmap`,
+   `metasploit-framework`, etc.), `headless`, `default` (`kali-linux-default`,
+   the full meta-package), or `large`. `default`/`large` are big installs;
+   the task runs async with a long poll.
 
 ## Connecting
 
@@ -200,9 +214,9 @@ rebuild.
 Hetzner monitors for scanning and acts on abuse reports against IPs in
 their network. This box's public IP should be treated accordingly:
 
-- Route THM/HTB/CTF and other lab traffic through the lab's own VPN, or a
-  Mullvad-style egress tunnel, so Hetzner only ever sees encrypted tunnel
-  traffic leaving the box.
+- Route THM/HTB/CTF and other lab traffic through the lab's own VPN, or
+  Mullvad (`kali_mullvad = true`, see above), so Hetzner only ever sees
+  encrypted tunnel traffic leaving the box.
 - Avoid hosting callback listeners or payloads on the public IP; that
   traffic is visible to Hetzner and carries real suspension risk. Keep
   listeners inside lab VPNs where possible; treat anything exposed on the
@@ -222,7 +236,7 @@ their network. This box's public IP should be treated accordingly:
 - `scripts/lib/kali-image.sh`: pure, unit-tested helpers (image URL
   resolution, checksum lookup) shared with the Packer build.
 - `ansible/`: playbook, roles (`common`, `wireguard_server`,
-  `persistence`, `kali_desktop`, `kali_toolset`), and the
+  `persistence`, `kali_desktop`, `kali_mullvad`, `kali_toolset`), and the
   `terraform.py` dynamic inventory.
 - `tests/`: `bats` tests for the Phase 0 shell helpers, run via
   `tests/run.sh`.
