@@ -40,9 +40,11 @@ Provisioning is two phases:
   Keep `privatekey` local; you'll paste the **public** key into
   `terraform.tfvars`.
 
-- `HCLOUD_TOKEN` exported in your shell for Phase 0 (`make image` uses the
-  `hcloud` CLI directly). Phase 1 reads the token from `terraform.tfvars`
-  (`hcloud_token`).
+- `HCLOUD_TOKEN` exported in your shell for Phase 0 (`make image` uses
+  `packer` with the `hcloud` plugin directly). Phase 1 reads the token from
+  `terraform.tfvars` (`hcloud_token`).
+- `packer` installed, with the Hetzner Cloud plugin:
+  `packer plugins install github.com/hetznercloud/hcloud`.
 
 ## Phase 0: build the snapshot (one-time)
 
@@ -51,28 +53,30 @@ export HCLOUD_TOKEN=...
 make image
 ```
 
-This runs `scripts/build-image.sh`, which:
+This runs `packer build` against `packer/kali-image.pkr.hcl`, which:
 
-1. Resolves the current Kali GenericCloud amd64 artifact
-   (`kali-linux-*-cloud-genericcloud-amd64.tar.xz`, which contains
-   `disk.raw`) from `kali.download`.
-2. Creates a **throwaway** builder server (`cx33`/`fsn1` by default, a
+1. Creates a **throwaway** builder server (`cx33`/`fsn1` by default, a
    plain Debian 12 image; the OS is irrelevant since the disk gets
-   overwritten).
-3. Boots it into Hetzner's rescue system, downloads the Kali tarball there,
-   **verifies its sha256 against the published `SHA256SUMS` before touching
-   the disk**, then extracts and `dd`s `disk.raw` onto `/dev/sda`.
-4. Reboots out of rescue into the freshly-imaged Kali disk, snapshots the
-   server, and deletes the throwaway server.
-5. Prints the resulting **snapshot ID** to stdout.
+   overwritten) and boots it into Hetzner's rescue system.
+2. Resolves the current Kali GenericCloud amd64 artifact
+   (`kali-linux-*-cloud-genericcloud-amd64.tar.xz`, which contains
+   `disk.raw`) from `kali.download`, downloads it there, and **verifies its
+   sha256 against the published `SHA256SUMS` before touching the disk**
+   (via `scripts/lib/kali-image.sh`, uploaded and sourced on the builder).
+3. Extracts `disk.raw` to a real file and `dd`s it onto `/dev/sda`.
+4. Powers the server off and snapshots it, then deletes the throwaway
+   server.
 
-That snapshot ID is an input, not a stock Hetzner image. Copy it into
+Packer prints the resulting **snapshot ID**. Copy it into
 `terraform.tfvars` as `servers.<name>.server_image`. Re-run `make image`
 whenever you want a refreshed Kali build; each run produces a new snapshot
 ID and does not touch any running server.
 
-`bash scripts/build-image.sh --dry-run` resolves and prints the image URL
-without creating any Hetzner resources.
+Note: the builder server is powered off and snapshotted directly from
+rescue mode -- it never reboots into the freshly-written Kali disk before
+snapshotting. Rebooting the rescue kernel right after it rewrites its own
+boot disk's partition table live turned out to reliably crash it; powering
+off (hypervisor-level, no guest cooperation needed) avoids that entirely.
 
 ## Phase 1: provision the server
 
@@ -88,7 +92,8 @@ Edit `terraform.tfvars`:
 - `servers.<name>.server_image`: the snapshot ID from Phase 0.
 - Optionally adjust `server_type` (default `cx33`), `server_location`
   (default `fsn1`), `data_volume_gb` (default `40`, the persistent
-  `/home` volume size).
+  `/home` volume size), and `lab_username` (default `lab`, the interactive
+  SSH + desktop user cloud-init creates).
 
 Then:
 
@@ -213,8 +218,9 @@ their network. This box's public IP should be treated accordingly:
   consumed by the Ansible dynamic inventory).
 - `cloud-init-bootstrap.yaml`: first-boot user/SSH hardening template
   rendered into `hcloud_server.user_data`.
-- `scripts/build-image.sh`, `scripts/lib/kali-image.sh`: Phase 0 imaging
-  script and its pure, unit-tested helper functions.
+- `packer/kali-image.pkr.hcl`: Phase 0 imaging (Packer + hcloud plugin).
+- `scripts/lib/kali-image.sh`: pure, unit-tested helpers (image URL
+  resolution, checksum lookup) shared with the Packer build.
 - `ansible/`: playbook, roles (`common`, `wireguard_server`,
   `persistence`, `kali_desktop`, `kali_toolset`), and the
   `terraform.py` dynamic inventory.

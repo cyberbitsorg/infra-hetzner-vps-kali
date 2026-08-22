@@ -25,9 +25,10 @@ kali_want_sha() {
   printf '%s\n' "$want"
 }
 
-# build-image.sh verifies checksums inline on the rescue host while streaming
-# the download, so it does not call this helper on its hot path; this exists
-# for the test suite and as a reusable utility for callers that have a file.
+# The Packer build verifies checksums inline on the rescue host while
+# streaming the download, so it does not call this helper on its hot path;
+# this exists for the test suite and as a reusable utility for callers that
+# have a file.
 # Verify FILE against the SHA256SUMS body (portable: shasum or sha256sum).
 kali_verify_checksum() {
   local file="$1" sums="$2" base want got

@@ -10,12 +10,12 @@ validate:        ## Validate Tofu config
 	tofu init -backend=false >/dev/null && tofu validate
 
 lint:            ## Lint shell + Ansible
-	shellcheck scripts/*.sh scripts/lib/*.sh
+	shellcheck scripts/lib/*.sh
 	ansible-lint ansible/ || true
 	ansible-playbook -i ansible/inventory/terraform.py ansible/playbook.yaml --syntax-check
 
 test:            ## Run shell unit tests
 	bash tests/run.sh
 
-image:           ## Phase 0: build the Kali snapshot (one-time)
-	bash scripts/build-image.sh
+image:           ## Phase 0: build the Kali snapshot via Packer (one-time)
+	cd packer && packer init . && packer build .
