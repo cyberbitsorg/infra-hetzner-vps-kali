@@ -1,4 +1,4 @@
-# infra-hetzner-vps-kali
+# Kali VPS on Hetzner
 
 OpenTofu + Ansible automation for a Kali Linux pentest VPS on Hetzner Cloud
 (amd64, CX line, default `cx33`). RDP/desktop access is never exposed to the
