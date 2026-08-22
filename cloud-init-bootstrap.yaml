@@ -48,6 +48,9 @@ runcmd:
   - rm -f /etc/systemd/system/serial-getty@.service.d/autologin.conf
   - systemctl daemon-reload
   - systemctl restart getty@tty1.service serial-getty@ttyS0.service 2>/dev/null || true
+  # Pre-create root's remote_tmp so Ansible's first become:true task doesn't
+  # warn about creating /root/.ansible/tmp on the fly.
+  - mkdir -p -m 0700 /root/.ansible/tmp
   - touch /var/log/ansible-bootstrap-complete
 
 final_message: "Bootstrap complete. Run the Ansible playbook."
