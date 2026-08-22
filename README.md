@@ -209,6 +209,22 @@ role re-attaches and re-mounts it without re-seeding (the seed step only
 fires when the volume looks empty), so files under `/home` survive a
 rebuild.
 
+### Destroying everything, including the volume
+
+`prevent_destroy` only accepts a literal `true`/`false` in OpenTofu, so it
+cannot be toggled from a `terraform.tfvars` variable. To wipe the box and
+permanently delete `/home`, run:
+
+```
+make destroy-all
+```
+
+This flips `prevent_destroy` to `false` in [main.tf](main.tf) for the
+duration of the destroy, then reverts the file with `git checkout`. If
+`tofu destroy` fails or is aborted partway, `main.tf` is left with
+`prevent_destroy = false` (`git status` will show it as modified) &mdash;
+run `git checkout -- main.tf` manually before applying again.
+
 ## Operational constraints (abuse posture)
 
 Hetzner monitors for scanning and acts on abuse reports against IPs in

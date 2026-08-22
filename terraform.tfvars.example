@@ -3,7 +3,7 @@
 # Create at: https://console.hetzner.cloud/ -> Project -> Security -> API Tokens
 # =============================================================================
 
-hcloud_token = "<insert api token>"
+hcloud_token = "<insert your hcloud api token>"
 
 # =============================================================================
 # Server configuration
@@ -13,7 +13,7 @@ hcloud_token = "<insert api token>"
 #
 # server_type:     cx23=2CPU/4GB, cx33=4CPU/8GB, cx43=8CPU/16GB
 # server_location: fsn1=Falkenstein, nbg1=Nuremberg, hel1=Helsinki
-# server_image:    Phase-0 snapshot ID from `make image` (NOT a stock image name)
+# server_image:    Phase-0 snapshot ID from `make image`
 # server_backups:  Recommended! But +20% cost
 # data_volume_gb:  Persistent /home volume size; survives server rebuilds
 
@@ -21,17 +21,10 @@ servers = {
   fsn-kali01 = {
     server_type     = "cx33"
     server_location = "fsn1"
-    server_image    = "<insert phase-0 snapshot id>"
+    server_image    = "<insert the image id created in phase 0>"
     server_backups  = true
     data_volume_gb  = 40
   }
-  # fsn-kali02 = {
-  #   server_type     = "cx33"
-  #   server_location = "nbg1"
-  #   server_image    = "<insert phase-0 snapshot id>"
-  #   server_backups  = true
-  #   data_volume_gb  = 40
-  # }
 }
 
 # =============================================================================
