@@ -42,6 +42,15 @@
   when: (persistence_home_src.stdout | trim) | length == 0
   changed_when: true
 
+- name: Ensure the volume carries the KALIHOME label
+  # The label has been observed to go missing on an already-formatted,
+  # already-seeded volume (root cause unconfirmed) leaving /dev/disk/by-label/
+  # empty, which stalls home.mount (and every login whose $HOME is under
+  # /home) waiting on a device that never appears. e2label is idempotent and
+  # safe to re-run every time regardless of cause.
+  ansible.builtin.command: "e2label {{ data_volume_device }} KALIHOME"
+  changed_when: false
+
 - name: Add the fstab entry for /home keyed by LABEL
   ansible.posix.mount:
     path: /home

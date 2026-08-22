@@ -42,6 +42,12 @@ runcmd:
   - systemctl restart ssh || systemctl restart sshd
   - echo "${lab_username}:${admin_password}" | chpasswd
   - echo "deployacc:${deployacc_sudo_password}" | chpasswd
+  # The Kali GenericCloud image ships passwordless root autologin on the
+  # local/serial console; strip it so console access isn't a root bypass.
+  - rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
+  - rm -f /etc/systemd/system/serial-getty@.service.d/autologin.conf
+  - systemctl daemon-reload
+  - systemctl restart getty@tty1.service serial-getty@ttyS0.service 2>/dev/null || true
   - touch /var/log/ansible-bootstrap-complete
 
 final_message: "Bootstrap complete. Run the Ansible playbook."
