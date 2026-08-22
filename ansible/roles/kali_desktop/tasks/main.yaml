@@ -18,11 +18,15 @@
     mode: "0644"
 
 - name: Bind xrdp to the wg0 address only (never the public IP)
-  ansible.builtin.lineinfile:
+  # xrdp.ini has several unrelated `port=` keys (Xorg/Xvnc/vnc-any backend
+  # sections); lineinfile with an unscoped regexp can touch the wrong one.
+  # ini_file is section-aware and only ever touches [Globals]'s own port key.
+  community.general.ini_file:
     path: /etc/xrdp/xrdp.ini
-    regexp: '^\s*port='
-    line: "port=tcp://{{ wg_server_address | regex_replace('/.*$', '') }}:3389"
-    insertafter: '^\[Globals\]'
+    section: Globals
+    option: port
+    value: "tcp://{{ wg_server_address | regex_replace('/.*$', '') }}:3389"
+    no_extra_spaces: true
   notify: Restart xrdp
 
 - name: Ensure the xrdp systemd drop-in directory exists

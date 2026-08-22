@@ -19,11 +19,13 @@ if [ ! -f "$VAULT_PASS_FILE" ]; then
   echo "Created $VAULT_PASS_FILE"
 fi
 
+tmpfile=$(mktemp)
+trap 'rm -f "$tmpfile"' EXIT
+
 {
   printf "vault_deployacc_sudo_passwords:\n"
   tofu output -json deployacc_sudo_password | jq -r 'to_entries[] | "  \(.key): \(.value)"'
-} > /tmp/vault.tmp
-ansible-vault encrypt /tmp/vault.tmp --output "$VAULT_FILE"
-rm /tmp/vault.tmp
+} > "$tmpfile"
+ansible-vault encrypt "$tmpfile" --output "$VAULT_FILE"
 
 echo "Vault written to $VAULT_FILE"
