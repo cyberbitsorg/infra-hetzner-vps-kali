@@ -131,6 +131,10 @@ it, encrypted, to `ansible/group_vars/all/vault.yaml` (prompting to create
 `.vault_pass`, gitignored, on first run). Run it before the playbook;
 Ansible has nothing to `become` with until the vault exists.
 
+The interactive `${lab_username}` user's login/sudo password (a separate
+random value from `deployacc`'s) is in `tofu output -json
+login_credentials`; needed for RDP and console login.
+
 The playbook applies, in order:
 
 1. **`common`**: timezone, base packages, unattended-upgrades, and a
