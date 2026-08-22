@@ -72,10 +72,6 @@ Packer prints the resulting **snapshot ID**. Copy it into
 whenever you want a refreshed Kali build; each run produces a new snapshot
 ID and does not touch any running server.
 
-The builder is snapshotted powered off, straight from rescue mode -- see the
-top of `packer/kali-image.pkr.hcl` for why it never reboots into the
-freshly-written disk first.
-
 ## Phase 1: provision the server
 
 ```bash
@@ -241,20 +237,6 @@ their network. This box's public IP should be treated accordingly:
   authorisation. This repo does not open any standing public listener
   beyond SSH and WireGuard; everything else stays behind the tunnel.
 
-## Repository layout
+## License
 
-- `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `providers.tf`:
-  the OpenTofu config (server, rDNS, persistent volume, and their outputs
-  consumed by the Ansible dynamic inventory).
-- `cloud-init-bootstrap.yaml`: first-boot user/SSH hardening template
-  rendered into `hcloud_server.user_data`.
-- `packer/kali-image.pkr.hcl`: Phase 0 imaging (Packer + hcloud plugin).
-- `scripts/lib/kali-image.sh`: pure, unit-tested helpers (image URL
-  resolution, checksum lookup) shared with the Packer build.
-- `ansible/`: playbook, roles (`common`, `wireguard_server`,
-  `persistence`, `kali_desktop`, `kali_mullvad`, `kali_toolset`), and the
-  `terraform.py` dynamic inventory.
-- `tests/`: `bats` tests for the Phase 0 shell helpers, run via
-  `tests/run.sh`.
-- `Makefile`: `make fmt`, `make validate`, `make lint`, `make test`,
-  `make image`.
+GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
