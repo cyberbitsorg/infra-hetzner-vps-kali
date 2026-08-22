@@ -3,6 +3,14 @@ hostname: ${server_name}
 timezone: ${timezone}
 locale: en_US.UTF-8
 
+# The Kali GenericCloud image only has C.UTF-8 generated; en_US.UTF-8 is
+# commented out in /etc/locale.gen. bootcmd runs before the locale module
+# (both in the pre-config init stage), so generate it here first or
+# update-locale fails with exit 255 and cloud-init never reaches "done".
+bootcmd:
+  - sed -i 's/^# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  - locale-gen en_US.UTF-8
+
 users:
   - name: deployacc
     groups: [sudo]
