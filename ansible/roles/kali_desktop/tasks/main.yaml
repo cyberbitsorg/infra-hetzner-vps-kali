@@ -8,6 +8,10 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
+  # kali-desktop-xfce pulls in the full XFCE + X11 stack; give it room like
+  # the kali_toolset installs.
+  async: 3600
+  poll: 30
 
 - name: Make xrdp start an XFCE session for the lab user
   ansible.builtin.copy:

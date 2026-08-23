@@ -34,6 +34,10 @@ servers = {
 # SSH key must already exist in Hetzner Cloud.
 # Create it first using https://github.com/cyberbitsorg/infra-hetzner-ssh
 # then reference the key name here.
+#
+# Ansible relies on ssh's own default identity discovery (ansible.cfg sets
+# no private_key_file), so a non-default-named private key needs to be in
+# your ssh-agent or added to ~/.ssh/config for this host.
 
 ssh_public_key_path = "~/.ssh/id_ed25519.pub"
 ssh_key_name        = "main-deploy-key"
