@@ -1,6 +1,9 @@
 terraform.tfvars
+privatekey
 *.tfstate
 *.tfstate.*
 .terraform/
 .vault_pass
+ansible/group_vars/all/vault.yaml
 ansible/inventory/*.generated.*
+.terraform.lock.hcl

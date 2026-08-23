@@ -1,0 +1,67 @@
+---
+- name: Install XFCE and xrdp
+  ansible.builtin.apt:
+    name:
+      - kali-desktop-xfce
+      - xorgxrdp
+      - xrdp
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  # kali-desktop-xfce pulls in the full XFCE + X11 stack; give it room like
+  # the kali_toolset installs.
+  async: 3600
+  poll: 30
+
+- name: Make xrdp start an XFCE session for the lab user
+  ansible.builtin.copy:
+    dest: "/home/{{ lab_user }}/.xsession"
+    content: "startxfce4\n"
+    owner: "{{ lab_user }}"
+    group: "{{ lab_user }}"
+    mode: "0644"
+
+- name: Bind xrdp to the wg0 address only (never the public IP)
+  # xrdp.ini has several unrelated `port=` keys (Xorg/Xvnc/vnc-any backend
+  # sections); lineinfile with an unscoped regexp can touch the wrong one.
+  # ini_file is section-aware and only ever touches [Globals]'s own port key.
+  community.general.ini_file:
+    path: /etc/xrdp/xrdp.ini
+    section: Globals
+    option: port
+    value: "tcp://{{ wg_server_address | regex_replace('/.*$', '') }}:3389"
+    no_extra_spaces: true
+  notify: Restart xrdp
+
+- name: Ensure the xrdp systemd drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/xrdp.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Order xrdp after the WireGuard interface (xrdp must bind an up interface)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/xrdp.service.d/10-wireguard.conf
+    content: |
+      [Unit]
+      After=wg-quick@{{ wg_interface }}.service
+      Requires=wg-quick@{{ wg_interface }}.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart xrdp
+
+- name: Ensure xrdp reads the bound address on boot
+  ansible.builtin.systemd:
+    name: xrdp
+    enabled: true
+    state: started
+
+- name: Add xrdp user to the ssl-cert group (xrdp key access)
+  ansible.builtin.user:
+    name: xrdp
+    groups: ssl-cert
+    append: true
+  notify: Restart xrdp

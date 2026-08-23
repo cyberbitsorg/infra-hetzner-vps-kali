@@ -1,0 +1,27 @@
+# Managed by Ansible (kali_mullvad role). Do not edit.
+#
+# Exempts SSH and WireGuard from Mullvad's tunnel enforcement, so management
+# access to this box survives a connected tunnel and kill switch. This box is
+# managed over its public IP, not a local range Mullvad's "allow LAN" would
+# already cover. Marks are Mullvad's own documented split-tunnel technique:
+# https://mullvad.net/en/help/split-tunneling-with-linux-advanced
+#
+# add+flush before redefining: `add rule` never dedupes, so a bare re-apply
+# (e.g. after wg_listen_port changes) would otherwise stack the old port's
+# rules on top of the new ones instead of replacing them.
+add table inet excludeTraffic
+flush table inet excludeTraffic
+
+table inet excludeTraffic {
+  chain allowIncoming {
+    type filter hook input priority -100; policy accept;
+    tcp dport 22 ct mark set 0x00000f41 meta mark set 0x6d6f6c65;
+    udp dport {{ wg_listen_port | default(51820) }} ct mark set 0x00000f41 meta mark set 0x6d6f6c65;
+  }
+
+  chain allowOutgoing {
+    type route hook output priority -100; policy accept;
+    tcp sport 22 ct mark set 0x00000f41 meta mark set 0x6d6f6c65;
+    udp sport {{ wg_listen_port | default(51820) }} ct mark set 0x00000f41 meta mark set 0x6d6f6c65;
+  }
+}

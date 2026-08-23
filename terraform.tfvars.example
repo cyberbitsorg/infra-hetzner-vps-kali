@@ -1,0 +1,106 @@
+# =============================================================================
+# Hetzner Cloud API token
+# Create at: https://console.hetzner.cloud/ -> Project -> Security -> API Tokens
+# =============================================================================
+
+hcloud_token = "<insert your hcloud api token>"
+
+# =============================================================================
+# Server configuration
+# =============================================================================
+# Each key is the server name (used as hostname and Ansible inventory name).
+# Add more entries to provision additional servers.
+#
+# server_type:     cx23=2CPU/4GB, cx33=4CPU/8GB, cx43=8CPU/16GB
+# server_location: fsn1=Falkenstein, nbg1=Nuremberg, hel1=Helsinki
+# server_image:    Phase-0 snapshot ID from `make image`
+# server_backups:  Recommended! But +20% cost
+# data_volume_gb:  Persistent /home volume size; survives server rebuilds
+
+servers = {
+  fsn-kali01 = {
+    server_type     = "cx33"
+    server_location = "fsn1"
+    server_image    = "<insert the image id created in phase 0>"
+    server_backups  = true
+    data_volume_gb  = 40
+  }
+}
+
+# =============================================================================
+# SSH configuration
+# =============================================================================
+
+# SSH key must already exist in Hetzner Cloud.
+# Create it first using https://github.com/cyberbitsorg/infra-hetzner-ssh
+# then reference the key name here.
+#
+# Ansible relies on ssh's own default identity discovery (ansible.cfg sets
+# no private_key_file), so a non-default-named private key needs to be in
+# your ssh-agent or added to ~/.ssh/config for this host.
+
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+ssh_key_name        = "main-deploy-key"
+
+# =============================================================================
+# Lab user
+# =============================================================================
+
+# Interactive lab user created on first boot (SSH + desktop). Separate from
+# deployacc, the password-sudo user Ansible uses to configure the box.
+lab_username = "lab"
+
+# =============================================================================
+# Kali provisioning (read by Ansible via terraform.py, same as wg_listen_port)
+# =============================================================================
+
+# kali_gui:     "xfce" (desktop + xrdp) or "none" (headless, no desktop)
+# kali_toolset: "curated" (a lean pentest set), "headless" (kali-linux-headless),
+#               "default" (kali-linux-default), or "large" (kali-linux-large)
+# kali_mullvad: install Mullvad VPN (+ Mullvad Browser if kali_gui != none).
+#               Off by default -- it adds a third-party apt repo. SSH and
+#               WireGuard are exempted from Mullvad's tunnel regardless, so
+#               management access survives a connected tunnel; see
+#               ansible/roles/kali_mullvad.
+
+# kali_gui     = "xfce"
+# kali_toolset = "default"
+# kali_mullvad = false
+
+# =============================================================================
+# Domain configuration
+# =============================================================================
+
+# Base domain used to construct FQDN: <server_name>.<base_domain>
+# Example: server_name "fsn-kali01" + base_domain "example.com" = "fsn-kali01.example.com"
+base_domain = "<insert domain name>"
+
+# =============================================================================
+# WireGuard
+# =============================================================================
+
+# The operator peer's (your Mac's) WireGuard PUBLIC key.
+# Generate once, keep the private key local: wg genkey | tee privatekey | wg pubkey
+wg_peer_public_key = "<insert wireguard public key>"
+
+# Uncomment to override the defaults:
+# wg_listen_port    = 51820
+# wg_server_address = "10.99.0.1/24"
+# wg_peer_address   = "10.99.0.2/32"
+
+# =============================================================================
+# Firewall configuration
+# =============================================================================
+# Firewall must already exist in Hetzner Cloud.
+# Create it first using https://github.com/cyberbitsorg/infra-hetzner-firewall
+# then reference the firewall name here.
+
+firewall_name = "kali-wg-firewall"
+
+# =============================================================================
+# Misc (optional, sensible defaults already set)
+# =============================================================================
+
+# timezone    = "Europe/Amsterdam"
+# environment = "production"
+# managed_by  = "opentofu"

@@ -1,0 +1,56 @@
+#cloud-config
+hostname: ${server_name}
+timezone: ${timezone}
+locale: en_US.UTF-8
+
+# The Kali GenericCloud image only has C.UTF-8 generated; en_US.UTF-8 is
+# commented out in /etc/locale.gen. bootcmd runs before the locale module
+# (both in the pre-config init stage), so generate it here first or
+# update-locale fails with exit 255 and cloud-init never reaches "done".
+bootcmd:
+  - sed -i 's/^# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  - locale-gen en_US.UTF-8
+
+users:
+  - name: deployacc
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) ALL
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+  - name: ${lab_username}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) ALL
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+disable_root: true
+ssh_pwauth: false
+
+packages:
+  - python3
+  - python3-venv
+  - git
+
+runcmd:
+  - echo "PermitRootLogin no" > /etc/ssh/sshd_config.d/01-ansible.conf
+  - echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/01-ansible.conf
+  - echo "AllowUsers deployacc ${lab_username}" >> /etc/ssh/sshd_config.d/01-ansible.conf
+  - systemctl restart ssh || systemctl restart sshd
+  - echo "${lab_username}:${admin_password}" | chpasswd
+  - echo "deployacc:${deployacc_sudo_password}" | chpasswd
+  # The Kali GenericCloud image ships passwordless root autologin on the
+  # local/serial console; strip it so console access isn't a root bypass.
+  - rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
+  - rm -f /etc/systemd/system/serial-getty@.service.d/autologin.conf
+  - systemctl daemon-reload
+  - systemctl restart getty@tty1.service serial-getty@ttyS0.service 2>/dev/null || true
+  # Pre-create root's remote_tmp so Ansible's first become:true task doesn't
+  # warn about creating /root/.ansible/tmp on the fly.
+  - mkdir -p -m 0700 /root/.ansible/tmp
+  - touch /var/log/ansible-bootstrap-complete
+
+final_message: "Bootstrap complete. Run the Ansible playbook."

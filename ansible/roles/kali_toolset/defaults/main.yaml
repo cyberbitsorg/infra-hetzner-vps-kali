@@ -1,0 +1,16 @@
+---
+kali_toolset_packages_curated:
+  - nmap
+  - netcat-traditional
+  - gobuster
+  - ffuf
+  - hydra
+  - sqlmap
+  - metasploit-framework
+  - seclists
+kali_toolset_packages_headless:
+  - kali-linux-headless
+kali_toolset_packages_default:
+  - kali-linux-default
+kali_toolset_packages_large:
+  - kali-linux-large

@@ -1,0 +1,6 @@
+---
+- name: Restart xrdp
+  ansible.builtin.systemd:
+    name: xrdp
+    state: restarted
+    daemon_reload: true
