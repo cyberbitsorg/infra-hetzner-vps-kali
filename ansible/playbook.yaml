@@ -16,3 +16,8 @@
       when: (kali_gui | default('xfce')) != 'none'
     - { role: kali_mullvad, tags: [mullvad, vpn] }
     - { role: kali_toolset, tags: [toolset, tools] }
+
+  post_tasks:
+    - name: Show the server public key (paste into the Mac peer config)
+      ansible.builtin.debug:
+        msg: "WireGuard server public key: {{ wireguard_server_pub.stdout | trim }}"

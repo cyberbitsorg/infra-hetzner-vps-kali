@@ -132,16 +132,6 @@
     state: started
   when: kali_mullvad | bool
 
-- name: Say that Mullvad still needs an account, and how management access is protected
-  ansible.builtin.debug:
-    msg: >-
-      Mullvad is installed but not logged in. On the box:
-      `mullvad account login <account number>` then `mullvad connect`.
-      SSH (22) and WireGuard ({{ wg_listen_port | default(51820) }}) are
-      exempted from the tunnel via nftables, so management access survives
-      a connected tunnel.
-  when: kali_mullvad | bool
-
 # --- Removal ----------------------------------------------------------------
 # Packages first: dropping the sources file would take their origin away
 # while they are still installed.
