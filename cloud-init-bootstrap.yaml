@@ -42,6 +42,8 @@ runcmd:
   - systemctl restart ssh || systemctl restart sshd
   - echo "${lab_username}:${admin_password}" | chpasswd
   - echo "deployacc:${deployacc_sudo_password}" | chpasswd
+  # Scrub the plaintext passwords from the cloud-init output log
+  - sed -i '/chpasswd/d' /var/log/cloud-init-output.log
   # The Kali GenericCloud image ships passwordless root autologin on the
   # local/serial console; strip it so console access isn't a root bypass.
   - rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
