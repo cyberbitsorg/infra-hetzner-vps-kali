@@ -21,6 +21,6 @@ image:           ## Phase 0: build the Kali snapshot via Packer (one-time)
 	cd packer && packer init . && packer build .
 
 destroy-all:     ## Destroy everything, including the prevent_destroy'd /home volume
-	sed -i '' 's/prevent_destroy = true/prevent_destroy = false/' main.tf
+	sed -i.bak 's/prevent_destroy = true/prevent_destroy = false/' main.tf && rm -f main.tf.bak
 	tofu destroy
 	git checkout -- main.tf

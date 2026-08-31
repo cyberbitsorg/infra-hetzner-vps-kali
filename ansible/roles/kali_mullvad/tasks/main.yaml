@@ -96,6 +96,9 @@
     owner: root
     group: root
     mode: "0644"
+    # Pin the keyring so a compromised repository host can't swap the
+    # signing key; update this checksum when Mullvad rotates the key.
+    checksum: sha256:67cee5d3e6d566c121c2c812d594ba673aaf73e6a679ab6d254f03e8210c49d1
   when: kali_mullvad | bool
 
 # The suite is spelled out rather than taken from `lsb_release -cs`: on Kali
