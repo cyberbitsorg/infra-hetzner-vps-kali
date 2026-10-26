@@ -29,6 +29,7 @@
     option: port
     value: "tcp://{{ wg_server_address | regex_replace('/.*$', '') }}:3389"
     no_extra_spaces: true
+    mode: "0644"
   notify: Restart xrdp
 
 - name: Ensure the xrdp systemd drop-in directory exists
