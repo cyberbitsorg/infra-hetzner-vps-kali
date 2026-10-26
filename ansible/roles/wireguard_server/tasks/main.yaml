@@ -3,8 +3,6 @@
   ansible.builtin.apt:
     name: wireguard-tools
     state: present
-    update_cache: true
-    cache_valid_time: 3600
 
 - name: Generate the server private key once (persisted under /etc/wireguard)
   ansible.builtin.shell:

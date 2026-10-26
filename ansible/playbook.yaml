@@ -7,6 +7,14 @@
   vars:
     lab_user: "{{ hostvars[inventory_hostname]['lab_username'] | default('lab', true) }}"
 
+  # One apt-cache policy for the whole play, instead of repeating
+  # update_cache/cache_valid_time on every apt task. Tasks that need a forced
+  # refresh override cache_valid_time: 0 (see kali_mullvad).
+  module_defaults:
+    ansible.builtin.apt:
+      update_cache: true
+      cache_valid_time: 3600
+
   roles:
     - { role: common, tags: [common, base] }
     - { role: wireguard_server, tags: [wireguard, wg, network] }

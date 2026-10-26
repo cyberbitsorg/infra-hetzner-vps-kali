@@ -11,8 +11,6 @@
   ansible.builtin.apt:
     name: "{{ kali_toolset_packages }}"
     state: present
-    update_cache: true
-    cache_valid_time: 3600
   # kali-linux-default/-large are large; give the install room.
   async: 3600
   poll: 30

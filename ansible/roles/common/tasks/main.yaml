@@ -1,9 +1,6 @@
 ---
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-
+# Cache freshness is the play's module_defaults policy (update_cache with a
+# 3600s window); the first install task picks it up.
 - name: Install base packages
   ansible.builtin.apt:
     name:

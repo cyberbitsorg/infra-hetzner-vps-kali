@@ -38,8 +38,6 @@
   ansible.builtin.apt:
     name: nftables
     state: present
-    update_cache: true
-    cache_valid_time: 3600
   when: kali_mullvad | bool
 
 - name: Install nftables rules exempting SSH and WireGuard from Mullvad's tunnel
@@ -122,8 +120,6 @@
       {{ ['mullvad-vpn']
          + ([kali_mullvad_browser_pkg] if (kali_gui | default('xfce')) != 'none' else []) }}
     state: present
-    update_cache: true
-    cache_valid_time: 3600
   when: kali_mullvad | bool
 
 # The postinst does this already; stated so a daemon disabled by hand comes
@@ -161,6 +157,9 @@
 - name: Refresh the apt cache without the Mullvad repository
   ansible.builtin.apt:
     update_cache: true
+    # Forced refresh: the play default's 3600s validity window could skip
+    # exactly the one update that matters here.
+    cache_valid_time: 0
   when:
     - not (kali_mullvad | bool)
     - kali_mullvad_repo_removed.changed
