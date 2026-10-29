@@ -24,7 +24,7 @@ servers = {
   vps-a3f8c1 = {
     server_type     = "cx33"
     server_location = "fsn1"
-    server_image    = "<insert the image id created in phase 0>"
+    server_image    = "449496157" # Phase-0 snapshot from `make image` (kali-genericcloud-20261029-1004)
     server_backups  = true
     data_volume_gb  = 40
   }
@@ -51,7 +51,7 @@ ssh_key_name        = "main-deploy-key"
 
 # Interactive lab user created on first boot (SSH + desktop). Separate from
 # deployacc, the password-sudo user Ansible uses to configure the box.
-lab_username = "lab"
+lab_username = "devops"
 
 # =============================================================================
 # Kali provisioning (read by Ansible via terraform.py, same as wg_listen_port)
@@ -66,9 +66,9 @@ lab_username = "lab"
 #               management access survives a connected tunnel; see
 #               ansible/roles/kali_mullvad.
 
-# kali_gui     = "xfce"
-# kali_toolset = "default"
-# kali_mullvad = false
+kali_gui     = "xfce"
+kali_toolset = "default"
+kali_mullvad = true
 
 # =============================================================================
 # Domain configuration
@@ -76,7 +76,7 @@ lab_username = "lab"
 
 # Base domain used to construct FQDN: <server_name>.<base_domain>
 # Example: server_name "vps-a3f8c1" + base_domain "example.com" = "vps-a3f8c1.example.com"
-base_domain = "<insert domain name>"
+base_domain = "cyberbits.org"
 
 # =============================================================================
 # WireGuard
@@ -84,7 +84,7 @@ base_domain = "<insert domain name>"
 
 # The operator peer's (your Mac's) WireGuard PUBLIC key.
 # Generate once, keep the private key local: wg genkey | tee privatekey | wg pubkey
-wg_peer_public_key = "<insert wireguard public key>"
+wg_peer_public_key = "xkKNp3g1Gra2hq19UJt7MdjFQUT0KMKQjA5dEmi6L1I="
 
 # Uncomment to override the defaults:
 # wg_listen_port    = 51820
