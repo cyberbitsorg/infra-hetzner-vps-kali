@@ -12,6 +12,18 @@
       - vim
     state: present
 
+# Shipped by the Kali GenericCloud image: a skeleton home for its default
+# user (never created here -- our users: override replaces it) and a sudoers
+# stub for a group with no members. Left in place they clutter /home and get
+# seeded onto the persistent volume; drop both on every run.
+- name: Remove leftover Kali image artifacts
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /home/kali
+    - /etc/sudoers.d/kali-grant-root
+
 - name: Enable unattended-upgrades
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades
