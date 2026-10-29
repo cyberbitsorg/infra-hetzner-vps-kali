@@ -83,6 +83,32 @@ build {
       # (tar -xO | dd) corrupts partway through since sparse-hole
       # reconstruction needs a real, seekable file. Extract to one first.
       "tar -xJf \"$file\" disk.raw",
+      # Kali 2026.3's cloud-init loses a boot race on this image: at
+      # init-local the virtio NIC may not be registered/renamed yet, so
+      # DataSourceHetzner (a local-stage datasource, never retried) finds no
+      # fallback NIC, reaches neither metadata URL, and the box falls back to
+      # DataSourceNone -- silently dropping all user-data. Pin the NIC name
+      # by driver and make cloud-init-local wait for it before starting.
+      "loopdev=$(losetup --find --show --partscan disk.raw)",
+      "mkdir -p /mnt/img",
+      "mount \"$${loopdev}p1\" /mnt/img",
+      "mkdir -p /mnt/img/etc/systemd/network /mnt/img/etc/systemd/system/cloud-init-local.service.d",
+      "cat > /mnt/img/etc/systemd/network/10-virtio-name.link <<'LINK'",
+      "[Match]",
+      "Driver=virtio_net",
+      "",
+      "[Link]",
+      "Name=eth0",
+      "LINK",
+      "cat > /mnt/img/etc/systemd/system/cloud-init-local.service.d/10-wait-nic.conf <<'UNIT'",
+      "# The virtio NIC may register (and be renamed to eth0) after cloud-init's",
+      "# init-local stage starts; DataSourceHetzner is local-stage and never",
+      "# retried. Wait for the interface and a settled udev queue first.",
+      "[Service]",
+      "ExecStartPre=/bin/sh -c 'i=0; while [ \"$i\" -lt 150 ] && [ ! -e /sys/class/net/eth0 ]; do sleep 0.1; i=$((i+1)); done; udevadm settle --timeout=10 || true'",
+      "UNIT",
+      "umount /mnt/img",
+      "losetup -d \"$loopdev\"",
       "dd if=disk.raw of=/dev/sda bs=4M status=progress",
       "sync"
     ]
