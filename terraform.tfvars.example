@@ -9,7 +9,10 @@ hcloud_token = "<insert your hcloud api token>"
 # Server configuration
 # =============================================================================
 # Each key is the server name (used as hostname and Ansible inventory name).
-# Add more entries to provision additional servers.
+# That name is world-visible: it becomes the cloud-init hostname and the
+# rDNS PTR target logs show. Keep it boring and random (vps-<hex>), the same
+# principle as GUEST_HOSTNAME in infra-utm-redteam-main -- never "kali" or
+# "redteam". Add more entries to provision additional servers.
 #
 # server_type:     cx23=2CPU/4GB, cx33=4CPU/8GB, cx43=8CPU/16GB
 # server_location: fsn1=Falkenstein, nbg1=Nuremberg, hel1=Helsinki
@@ -18,7 +21,7 @@ hcloud_token = "<insert your hcloud api token>"
 # data_volume_gb:  Persistent /home volume size; survives server rebuilds
 
 servers = {
-  fsn-kali01 = {
+  vps-a3f8c1 = {
     server_type     = "cx33"
     server_location = "fsn1"
     server_image    = "<insert the image id created in phase 0>"
@@ -72,7 +75,7 @@ lab_username = "lab"
 # =============================================================================
 
 # Base domain used to construct FQDN: <server_name>.<base_domain>
-# Example: server_name "fsn-kali01" + base_domain "example.com" = "fsn-kali01.example.com"
+# Example: server_name "vps-a3f8c1" + base_domain "example.com" = "vps-a3f8c1.example.com"
 base_domain = "<insert domain name>"
 
 # =============================================================================

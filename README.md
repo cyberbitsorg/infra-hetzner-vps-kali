@@ -93,6 +93,12 @@ Edit `terraform.tfvars`:
 - `hcloud_token`: your Hetzner Cloud API token.
 - `wg_peer_public_key`: the WireGuard public key generated above.
 - `base_domain`: used to build the server's FQDN / rDNS PTR.
+- The `servers` map key is the server name and, through it, the guest
+  hostname and rDNS PTR — the identity every target's logs see. Pick a
+  boring random name (`vps-a3f8c1`), never anything tool- or
+  operator-revealing; same principle as `GUEST_HOSTNAME` in
+  `infra-utm-redteam-main`. Renaming a key later replaces the server, so
+  choose it before the first apply.
 - `servers.<name>.server_image`: the snapshot ID from Phase 0.
 - Optionally adjust `server_type` (default `cx33`), `server_location`
   (default `fsn1`), `data_volume_gb` (default `40`, the persistent

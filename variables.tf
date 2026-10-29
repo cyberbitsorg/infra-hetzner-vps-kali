@@ -5,7 +5,7 @@ variable "hcloud_token" {
 }
 
 variable "servers" {
-  description = "Map of Kali servers to provision. Key = server_name = Ansible inventory hostname."
+  description = "Map of Kali servers to provision. Key = server_name = Ansible inventory hostname; it is also the world-visible hostname and rDNS PTR, so keep it boring."
   type = map(object({
     server_type     = string # e.g. cx33
     server_location = string # e.g. fsn1
