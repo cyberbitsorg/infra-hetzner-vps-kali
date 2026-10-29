@@ -45,7 +45,11 @@ resource "hcloud_server" "kali" {
   labels = local.labels
 
   lifecycle {
-    ignore_changes = [user_data]
+    # image is birth-only in the hcloud API (changing it always forces a
+    # replacement); tfvars tracks the current Phase-0 snapshot for NEW
+    # servers. Rebuilding a live box is teardown + apply, around the
+    # prevent_destroy'd /home volume.
+    ignore_changes = [user_data, image]
   }
 }
 
